@@ -1,0 +1,28 @@
+[
+  {
+    "name": "Tapo C200",
+    "host": "192.168.137.246",
+    "onvif_port": 2020,
+    "rtsp_port": 554,
+    "rtsp_path": "/stream2",
+    "username": "psitest135",
+    "password": "psitest135",
+    "auth_mode": "custom",
+    "algorithm": "auto",
+    "quote_algo": true,
+    "protocol": "rtsp"
+  },
+  {
+    "name": "Hikvision",
+    "host": "192.168.66.231",
+    "onvif_port": 80,
+    "rtsp_port": 554,
+    "rtsp_path": "/Streaming/Channels/101",
+    "username": "admin",
+    "password": "psitest135",
+    "auth_mode": "standard",
+    "algorithm": "auto",
+    "quote_algo": false,
+    "protocol": "rtsp"
+  }
+]
