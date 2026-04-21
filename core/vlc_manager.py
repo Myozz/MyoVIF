@@ -100,7 +100,7 @@ def build_rtsp_url_with_creds(rtsp_url, username, password) -> str:
 
 
 def launch_stream(rtsp_url, username, password, player="vlc",
-                  player_path=None, log_func=None) -> Optional[subprocess.Popen]:
+                  player_path=None, log_func=None, disable_hw=False, tunnel=False) -> Optional[subprocess.Popen]:
     """Launch VLC or ffplay to stream an RTSP/RTSPS URL.
 
     Returns Popen object or None.
@@ -116,7 +116,23 @@ def launch_stream(rtsp_url, username, password, player="vlc",
     auth_url = build_rtsp_url_with_creds(rtsp_url, username, password)
 
     if name == "vlc":
-        cmd = [str(exe)] + VLC_DEFAULT_ARGS + [
+        # Tạo một bản sao của mảng tham số mặc định để dễ dàng thêm/bớt
+        active_vlc_args = list(VLC_DEFAULT_ARGS)
+        
+        # 1. Tắt giải mã phần cứng nếu được tick
+        if disable_hw:
+            active_vlc_args.append('--avcodec-hw=none')
+            
+        # 2. Bật RTSP Tunneling qua cổng 2020 nếu được tick
+        if tunnel:
+            if '--rtsp-tcp' in active_vlc_args:
+                active_vlc_args.remove('--rtsp-tcp') # Bỏ cờ TCP đi vì tunnel chạy trên HTTP
+            active_vlc_args.extend([
+                '--rtsp-http',
+                '--rtsp-http-port', '2020'
+            ])
+
+        cmd = [str(exe)] + active_vlc_args + [
             "--meta-title", "MyoVIF Stream",
             "--rtsp-user", username,
             "--rtsp-pwd", password,

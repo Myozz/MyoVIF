@@ -39,7 +39,7 @@ main debug: using stream_filter module "cache_read"
 main debug: looking for stream_filter module matching "any": 24 candidates
 playlist debug: using XSPF playlist reader
 main debug: using stream_filter module "playlist"
-main debug: stream filter added to 000001e7a13b0be0
+main debug: stream filter added to 00000141f0e94cc0
 main debug: looking for stream_filter module matching "any": 24 candidates
 main debug: no stream_filter modules matched
 main debug: looking for stream_directory module matching "any": 1 candidates
@@ -102,7 +102,6 @@ main debug: `rtsp://psitest135:psitest135@192.168.137.246:554/stream2' gives acc
 main debug: creating demux: access='rtsp' demux='any' location='psitest135:psitest135@192.168.137.246:554/stream2' file='\\psitest135:psitest135@192.168.137.246:554\stream2'
 main debug: looking for access_demux module matching "rtsp": 15 candidates
 live555 debug: version 2016.11.28
-qt debug: IM: Setting an input
 main debug: looking for meta fetcher module matching "any": 1 candidates
 lua debug: Trying Lua scripts in C:\Users\My0zZ\AppData\Roaming\vlc\lua\meta\fetcher
 lua debug: Trying Lua scripts in D:\Project\SHA256_ONVIF\vlc\lua\meta\fetcher
@@ -120,13 +119,8 @@ lua debug: skipping script (unmatched scope) D:\Project\SHA256_ONVIF\vlc\lua\met
 lua debug: Trying Lua playlist script D:\Project\SHA256_ONVIF\vlc\lua\meta\art\03_lastfm.luac
 lua debug: skipping script (unmatched scope) D:\Project\SHA256_ONVIF\vlc\lua\meta\art\03_lastfm.luac
 main debug: no art finder modules matched
-live555 debug: authentication failed
-live555 debug: retrying with user=psitest135
-live555 debug: authentication failed
-main debug: looking for keystore module matching "any": 3 candidates
-main debug: no keystore modules matched
-live555 debug: retrying with user=psitest135
-live555 debug: authentication failed
+qt debug: IM: Setting an input
+live555 debug: connection error -10057
 live555 error: Failed to connect with rtsp://192.168.137.246:554/stream2
 main debug: no access_demux modules matched
 main debug: creating access: rtsp://psitest135:psitest135@192.168.137.246:554/stream2
@@ -135,12 +129,12 @@ main debug: looking for access module matching "rtsp": 27 candidates
 satip debug: try to open 'rtsp://psitest135:psitest135@192.168.137.246:554/stream2'
 satip debug: connect to host '192.168.137.246'
 main debug: net: connecting to 192.168.137.246 port 554
-main debug: connection succeeded (socket = 1600)
-main debug: net: opening 0.0.0.0 datagram port 9034
-main debug: net: opening 0.0.0.0 datagram port 9035
+main debug: connection succeeded (socket = 1632)
+main debug: net: opening 0.0.0.0 datagram port 9044
+main debug: net: opening 0.0.0.0 datagram port 9045
 satip error: Failed to setup RTSP session
 main debug: net: connecting to 192.168.137.246 port 554
-main debug: connection succeeded (socket = 1600)
+main debug: connection succeeded (socket = 1632)
 access_realrtsp warning: Cseq mismatch, got 1, assumed 0
 access_realrtsp debug: rtsp connected
 access_realrtsp warning: only real/helix rtsp servers supported for now
@@ -170,7 +164,7 @@ main debug: removing module "lua"
 main debug: removing module "win32"
 main debug: removing module "hotkeys"
 main debug: destroying
-main debug: saving media library to file C:\Users\My0zZ\AppData\Roaming\vlc\ml.xspf.tmp20416
+main debug: saving media library to file C:\Users\My0zZ\AppData\Roaming\vlc\ml.xspf.tmp6640
 main debug: looking for playlist export module matching "export-xspf": 4 candidates
 main debug: using playlist export module "export"
 main debug: removing module "export"

@@ -209,7 +209,7 @@ def build_rtsp_url_with_creds(rtsp_url, username, password):
 
 def launch_vlc(rtsp_url, username, password, vlc_path=None,
                extra_args=None, title=None, tunnel=False, tunnel_port=2020,
-               user_agent="Lavf/58.29.100", proxy=False, proxy_port=8554):
+               user_agent="Lavf/58.29.100", proxy=False, proxy_port=8554, disable_hw=False):
     """Launch VLC to stream an RTSP URL.
 
     Returns the subprocess.Popen object or None on failure.
@@ -258,6 +258,9 @@ def launch_vlc(rtsp_url, username, password, vlc_path=None,
         '--rtsp-pwd', password,
         final_url
     ])
+
+    if disable_hw:
+        cmd.append('--avcodec-hw=none')
 
     if extra_args:
         cmd.extend(extra_args)
@@ -862,6 +865,8 @@ Examples:
                         help='Use RTSP-over-HTTP tunneling (fixes SHA-256 auth on Tapo)')
     parser.add_argument('--tunnel-port', type=int, default=2020,
                         help='Port for RTSP tunneling (default: 2020 for Tapo)')
+    parser.add_argument('--no-hw', action='store_true',
+                        help='Tắt giải mã phần cứng VLC (Sửa lỗi treo stream)')
     parser.add_argument('--proxy', action='store_true',
                         help='Use local RTSP proxy to bypass player SHA-256 bugs')
     parser.add_argument('--proxy-port', type=int, default=8554,
@@ -1010,10 +1015,10 @@ Examples:
         print(f"  | {Color.bold('Test'):<33} | {Color.bold('Result'):<8} |")
         print(f"  +{'-'*35}+{'-'*10}+")
         for name, code in results:
-            if code == "200":
+            if code == "200" or code is True or (isinstance(code, str) and code.startswith("rtsp")):
                 status_text = "PASS"
                 status = Color.green(status_text)
-            elif code is None:
+            elif code is None or code is False:
                 status_text = "ERROR"
                 status = Color.red(status_text)
             else:
@@ -1091,7 +1096,8 @@ Examples:
                 tunnel_port=args.tunnel_port,
                 user_agent=args.user_agent,
                 proxy=args.proxy,
-                proxy_port=args.proxy_port
+                proxy_port=args.proxy_port,
+                disable_hw=args.no_hw
             )
             if proc:
                 print(f"\n  VLC is running. Press Ctrl+C to stop.")

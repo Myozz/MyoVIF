@@ -162,14 +162,14 @@ class MyoVIF(tk.Tk):
         ttk.Button(r2, text="Save", command=self._save_preset).pack(side="left", padx=2)
         ttk.Button(r2, text="Del", command=self._delete_preset).pack(side="left", padx=2)
 
-        # ── Options Card ──
+# ── Options Card ──
         opts_frame = ttk.LabelFrame(main, text="  Options  ",
                                      style="Card.TLabelframe")
         opts_frame.pack(fill="x", pady=(0, 6))
         opts_inner = tk.Frame(opts_frame, bg=COLORS["bg_card"])
         opts_inner.pack(fill="x", padx=10, pady=8)
 
-        # Row: Protocol, RTSP Path
+        # Row 3: Protocol, RTSP Path
         r3 = tk.Frame(opts_inner, bg=COLORS["bg_card"])
         r3.pack(fill="x", pady=2)
 
@@ -184,7 +184,7 @@ class MyoVIF(tk.Tk):
         self.var_rtsp_path = tk.StringVar(value="/stream1")
         self._entry(r3, self.var_rtsp_path, width=24).pack(side="left", padx=(4, 0))
 
-        # Row: Auth Mode
+        # Row 4: Auth Mode
         r4 = tk.Frame(opts_inner, bg=COLORS["bg_card"])
         r4.pack(fill="x", pady=2)
 
@@ -200,7 +200,6 @@ class MyoVIF(tk.Tk):
 
         # Custom Digest sub-frame (hidden by default)
         self.custom_frame = tk.Frame(opts_inner, bg=COLORS["bg_card"])
-        # Initially hidden — will pack when "custom" selected
 
         r5 = tk.Frame(self.custom_frame, bg=COLORS["bg_card"])
         r5.pack(fill="x", pady=2)
@@ -215,6 +214,20 @@ class MyoVIF(tk.Tk):
         self.var_quote = tk.BooleanVar(value=False)
         ttk.Checkbutton(r5, text="Quote Algorithm",
                          variable=self.var_quote).pack(side="left")
+
+        # Row 6: VLC Fixes (No HW & Tunnel)
+        r6 = tk.Frame(opts_inner, bg=COLORS["bg_card"])
+        r6.pack(fill="x", pady=(6, 2))
+
+        self._label(r6, "VLC Fixes:").pack(side="left")
+        
+        self.var_no_hw = tk.BooleanVar(value=False)
+        ttk.Checkbutton(r6, text="Disable HW Decode", 
+                         variable=self.var_no_hw).pack(side="left", padx=(4, 12))
+                         
+        self.var_tunnel = tk.BooleanVar(value=False)
+        ttk.Checkbutton(r6, text="HTTP Tunnel (Port 2020)", 
+                         variable=self.var_tunnel).pack(side="left")
 
         # ── Action Buttons ──
         btn_frame = tk.Frame(main, bg=COLORS["bg"])
@@ -443,6 +456,9 @@ class MyoVIF(tk.Tk):
             "algorithm": "auto" if algo_val == "Auto-detect" else algo_val,
             "quote_algo": self.var_quote.get(),
             "protocol": self.var_protocol.get(),
+            # Thêm 2 dòng này:
+            "no_hw": self.var_no_hw.get(),   
+            "tunnel": self.var_tunnel.get(), 
         }
 
     def _get_rtsp_url(self, cfg):
@@ -560,13 +576,13 @@ class MyoVIF(tk.Tk):
         self.log("─" * 50, "info")
         self.log(f"Launching stream: {rtsp_url}", "info")
 
+        # Sửa lại cục launch_stream này:
         proc = launch_stream(
             rtsp_url, cfg["username"], cfg["password"],
-            player="vlc", log_func=self.log
+            player="vlc", log_func=self.log,
+            disable_hw=cfg["no_hw"],  # Truyền tham số No HW
+            tunnel=cfg["tunnel"]      # Truyền tham số Tunnel
         )
-        if proc:
-            self.vlc_proc = proc
-            self.log("Player is running. Close the player window to stop.", "success")
 
     # ──── Cleanup ────
     def destroy(self):
