@@ -39,7 +39,7 @@ main debug: using stream_filter module "cache_read"
 main debug: looking for stream_filter module matching "any": 24 candidates
 playlist debug: using XSPF playlist reader
 main debug: using stream_filter module "playlist"
-main debug: stream filter added to 00000141f0e94cc0
+main debug: stream filter added to 000002be4dfc3f40
 main debug: looking for stream_filter module matching "any": 24 candidates
 main debug: no stream_filter modules matched
 main debug: looking for stream_directory module matching "any": 1 candidates
@@ -109,8 +109,8 @@ main debug: no meta fetcher modules matched
 main debug: looking for art finder module matching "any": 2 candidates
 lua debug: Trying Lua scripts in C:\Users\My0zZ\AppData\Roaming\vlc\lua\meta\art
 lua debug: Trying Lua scripts in D:\Project\SHA256_ONVIF\vlc\lua\meta\art
-main warning: Password in a URI is DEPRECATED
 lua debug: Trying Lua playlist script D:\Project\SHA256_ONVIF\vlc\lua\meta\art\00_musicbrainz.luac
+main warning: Password in a URI is DEPRECATED
 lua debug: skipping script (unmatched scope) D:\Project\SHA256_ONVIF\vlc\lua\meta\art\00_musicbrainz.luac
 lua debug: Trying Lua playlist script D:\Project\SHA256_ONVIF\vlc\lua\meta\art\01_googleimage.luac
 lua debug: skipping script (unmatched scope) D:\Project\SHA256_ONVIF\vlc\lua\meta\art\01_googleimage.luac
@@ -130,8 +130,8 @@ satip debug: try to open 'rtsp://psitest135:psitest135@192.168.137.246:554/strea
 satip debug: connect to host '192.168.137.246'
 main debug: net: connecting to 192.168.137.246 port 554
 main debug: connection succeeded (socket = 1632)
-main debug: net: opening 0.0.0.0 datagram port 9044
-main debug: net: opening 0.0.0.0 datagram port 9045
+main debug: net: opening 0.0.0.0 datagram port 9354
+main debug: net: opening 0.0.0.0 datagram port 9355
 satip error: Failed to setup RTSP session
 main debug: net: connecting to 192.168.137.246 port 554
 main debug: connection succeeded (socket = 1632)
@@ -164,7 +164,7 @@ main debug: removing module "lua"
 main debug: removing module "win32"
 main debug: removing module "hotkeys"
 main debug: destroying
-main debug: saving media library to file C:\Users\My0zZ\AppData\Roaming\vlc\ml.xspf.tmp6640
+main debug: saving media library to file C:\Users\My0zZ\AppData\Roaming\vlc\ml.xspf.tmp6624
 main debug: looking for playlist export module matching "export-xspf": 4 candidates
 main debug: using playlist export module "export"
 main debug: removing module "export"

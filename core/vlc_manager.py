@@ -100,11 +100,8 @@ def build_rtsp_url_with_creds(rtsp_url, username, password) -> str:
 
 
 def launch_stream(rtsp_url, username, password, player="vlc",
-                  player_path=None, log_func=None, disable_hw=False, tunnel=False) -> Optional[subprocess.Popen]:
-    """Launch VLC or ffplay to stream an RTSP/RTSPS URL.
-
-    Returns Popen object or None.
-    """
+                  player_path=None, log_func=None, disable_hw=False, use_proxy=False) -> Optional[subprocess.Popen]:
+    """Launch VLC or ffplay to stream an RTSP/RTSPS URL."""
     log = log_func or print
 
     exe, name = find_player(prefer=player, custom_path=player_path)
@@ -113,53 +110,51 @@ def launch_stream(rtsp_url, username, password, player="vlc",
         log(f"Expected VLC at: {DEFAULT_VLC_PATH}", "warning")
         return None
 
-    auth_url = build_rtsp_url_with_creds(rtsp_url, username, password)
+    proxy_obj = None
+    if use_proxy:
+        import random
+        from urllib.parse import urlparse
+        parsed = urlparse(rtsp_url)
+        
+        # Khởi tạo Local Proxy để vượt rào SHA-256 cho VLC
+        proxy_port = random.randint(10000, 60000)
+        proxy_obj = RTSPProxy(
+            local_port=proxy_port,
+            target_host=parsed.hostname,
+            target_port=parsed.port or 554,
+            target_path=parsed.path,
+            username=username,
+            password=password,
+            quote_algo=True,  # Bắt buộc True cho dòng Tapo C200
+            absolute_uri=True
+        )
+        proxy_obj.start()
+        stream_url = proxy_obj.proxy_url
+        log(f"Local Proxy started at {stream_url}", "info")
+    else:
+        stream_url = build_rtsp_url_with_creds(rtsp_url, username, password)
 
     if name == "vlc":
-        # Tạo một bản sao của mảng tham số mặc định để dễ dàng thêm/bớt
         active_vlc_args = list(VLC_DEFAULT_ARGS)
-        
-        # 1. Tắt giải mã phần cứng nếu được tick
         if disable_hw:
             active_vlc_args.append('--avcodec-hw=none')
-            
-        # 2. Bật RTSP Tunneling qua cổng 2020 nếu được tick
-        if tunnel:
-            if '--rtsp-tcp' in active_vlc_args:
-                active_vlc_args.remove('--rtsp-tcp') # Bỏ cờ TCP đi vì tunnel chạy trên HTTP
-            active_vlc_args.extend([
-                '--rtsp-http',
-                '--rtsp-http-port', '2020'
-            ])
 
         cmd = [str(exe)] + active_vlc_args + [
             "--meta-title", "MyoVIF Stream",
-            "--rtsp-user", username,
-            "--rtsp-pwd", password,
-            auth_url,
+            stream_url,
         ]
     else:
-        # ffplay
-        cmd = [
-            str(exe),
-            "-rtsp_transport", "tcp",
-            "-i", auth_url,
-            "-window_title", "MyoVIF Stream",
-        ]
-
-    log(f"Launching {name.upper()}: {exe}", "info")
-    log(f"Stream URL: {rtsp_url}", "info")
+        cmd = [str(exe), "-rtsp_transport", "tcp", stream_url]
 
     try:
-        proc = subprocess.Popen(
-            cmd,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        log(f"{name.upper()} started (PID {proc.pid})", "success")
+        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if proxy_obj:
+            proc._proxy_obj = proxy_obj  # Gắn proxy vào proc để bên ngoài có thể tắt nó đi khi đóng VLC
         return proc
     except Exception as e:
-        log(f"Failed to launch {name}: {e}", "error")
+        log(f"Error launching player: {e}", "error")
+        if proxy_obj:
+            proxy_obj.stop()
         return None
 
 

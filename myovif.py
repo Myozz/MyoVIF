@@ -221,9 +221,9 @@ class MyoVIF(tk.Tk):
 
         self._label(r6, "VLC Fixes:").pack(side="left")
         
-        self.var_no_hw = tk.BooleanVar(value=False)
-        ttk.Checkbutton(r6, text="Disable HW Decode", 
-                         variable=self.var_no_hw).pack(side="left", padx=(4, 12))
+        self.var_proxy = tk.BooleanVar(value=False)
+        ttk.Checkbutton(r6, text="Use Local Proxy (Fix SHA-256)", 
+                         variable=self.var_proxy).pack(side="left")
                          
         self.var_tunnel = tk.BooleanVar(value=False)
         ttk.Checkbutton(r6, text="HTTP Tunnel (Port 2020)", 
@@ -458,7 +458,7 @@ class MyoVIF(tk.Tk):
             "protocol": self.var_protocol.get(),
             # Thêm 2 dòng này:
             "no_hw": self.var_no_hw.get(),   
-            "tunnel": self.var_tunnel.get(), 
+            "use_proxy": self.var_tunnel.get(), 
         }
 
     def _get_rtsp_url(self, cfg):
