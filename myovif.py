@@ -198,6 +198,10 @@ class MyoVIF(tk.Tk):
                          variable=self.var_auth_mode,
                          value="custom").pack(side="left", padx=(0, 0))
 
+        self.var_ws_auth = tk.BooleanVar(value=False)
+        ttk.Checkbutton(r4, text="WS-Security",
+                         variable=self.var_ws_auth).pack(side="left", padx=(10, 0))
+
         # Custom Digest sub-frame (hidden by default)
         self.custom_frame = tk.Frame(opts_inner, bg=COLORS["bg_card"])
 
@@ -228,6 +232,10 @@ class MyoVIF(tk.Tk):
         self.var_tunnel = tk.BooleanVar(value=False)
         ttk.Checkbutton(r6, text="HTTP Tunnel (Port 2020)", 
                          variable=self.var_tunnel).pack(side="left")
+
+        self.var_absolute_uri = tk.BooleanVar(value=True)
+        ttk.Checkbutton(r6, text="Absolute URI", 
+                         variable=self.var_absolute_uri).pack(side="left", padx=(10, 0))
 
         # ── Action Buttons ──
         btn_frame = tk.Frame(main, bg=COLORS["bg"])
@@ -378,6 +386,8 @@ class MyoVIF(tk.Tk):
         self.var_pass.set(p.password)
         self.var_auth_mode.set(p.auth_mode)
         self.var_protocol.set(p.protocol)
+        self.var_ws_auth.set(p.use_ws_auth)
+        self.var_absolute_uri.set(p.absolute_uri)
         if p.auth_mode == "custom":
             algo_display = "Auto-detect" if p.algorithm == "auto" else p.algorithm
             self.var_algo.set(algo_display)
@@ -424,6 +434,8 @@ class MyoVIF(tk.Tk):
                 algorithm=algo,
                 quote_algo=self.var_quote.get(),
                 protocol=self.var_protocol.get(),
+                use_ws_auth=self.var_ws_auth.get(),
+                absolute_uri=self.var_absolute_uri.get(),
             )
             self.preset_mgr.add(preset)
             self._load_presets_dropdown()
@@ -456,9 +468,10 @@ class MyoVIF(tk.Tk):
             "algorithm": "auto" if algo_val == "Auto-detect" else algo_val,
             "quote_algo": self.var_quote.get(),
             "protocol": self.var_protocol.get(),
-            # Thêm 2 dòng này:
-            "no_hw": self.var_no_hw.get(),   
-            "use_proxy": self.var_tunnel.get(), 
+            "use_ws_auth": self.var_ws_auth.get(),
+            "absolute_uri": self.var_absolute_uri.get(),
+            "use_proxy": self.var_proxy.get(),
+            "tunnel": self.var_tunnel.get(),
         }
 
     def _get_rtsp_url(self, cfg):
@@ -517,7 +530,8 @@ class MyoVIF(tk.Tk):
             host=cfg["host"], port=cfg["onvif_port"],
             username=cfg["username"], password=cfg["password"],
             auth_mode=cfg["auth_mode"], algorithm=cfg["algorithm"],
-            quote_algo=cfg["quote_algo"], log_func=self.log
+            quote_algo=cfg["quote_algo"], use_ws_auth=cfg["use_ws_auth"], 
+            log_func=self.log
         )
 
         info = client.get_device_info()
@@ -546,7 +560,8 @@ class MyoVIF(tk.Tk):
             host=cfg["host"], port=cfg["onvif_port"],
             username=cfg["username"], password=cfg["password"],
             auth_mode=cfg["auth_mode"], algorithm=cfg["algorithm"],
-            quote_algo=cfg["quote_algo"], log_func=self.log
+            quote_algo=cfg["quote_algo"], use_ws_auth=cfg["use_ws_auth"], 
+            log_func=self.log
         )
         onvif.get_device_info()
 
@@ -558,7 +573,8 @@ class MyoVIF(tk.Tk):
             url=rtsp_url,
             username=cfg["username"], password=cfg["password"],
             auth_mode=cfg["auth_mode"], algorithm=cfg["algorithm"],
-            quote_algo=cfg["quote_algo"], log_func=self.log
+            quote_algo=cfg["quote_algo"], absolute_uri=cfg["absolute_uri"],
+            log_func=self.log
         )
         result = rtsp.test_auth()
         self.log("─" * 50, "info")
@@ -576,12 +592,11 @@ class MyoVIF(tk.Tk):
         self.log("─" * 50, "info")
         self.log(f"Launching stream: {rtsp_url}", "info")
 
-        # Sửa lại cục launch_stream này:
         proc = launch_stream(
             rtsp_url, cfg["username"], cfg["password"],
             player="vlc", log_func=self.log,
-            disable_hw=cfg["no_hw"],  # Truyền tham số No HW
-            tunnel=cfg["tunnel"]      # Truyền tham số Tunnel
+            use_proxy=cfg["use_proxy"], quote_algo=cfg["quote_algo"], algorithm=cfg["algorithm"],
+            absolute_uri=cfg["absolute_uri"], tunnel=cfg["tunnel"]
         )
 
     # ──── Cleanup ────

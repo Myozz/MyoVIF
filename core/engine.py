@@ -96,9 +96,44 @@ def compute_digest_response(
 # ────────────────────────────────────────────────────────────
 # ONVIF Client
 # ────────────────────────────────────────────────────────────
+import base64
+import time
+
+def generate_ws_security_header(username, password):
+    """Generate WS-UsernameToken according to ONVIF standards"""
+    nonce_bytes = os.urandom(16)
+    created = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    
+    digest_raw = nonce_bytes + created.encode('utf-8') + password.encode('utf-8')
+    password_digest = base64.b64encode(hashlib.sha1(digest_raw).digest()).decode('utf-8')
+    nonce_b64 = base64.b64encode(nonce_bytes).decode('utf-8')
+
+    header = f"""
+    <s:Header>
+        <Security s:mustUnderstand="1" xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+            <UsernameToken>
+                <Username>{username}</Username>
+                <Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordDigest">{password_digest}</Password>
+                <Nonce EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary">{nonce_b64}</Nonce>
+                <Created xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">{created}</Created>
+            </UsernameToken>
+        </Security>
+    </s:Header>"""
+    return header
+
+def inject_ws_header(soap_body: str, username, password) -> str:
+    """Inject WS-Security header into a SOAP envelope."""
+    header = generate_ws_security_header(username, password)
+    # Inject right before <soap:Body> or <s:Body>
+    if "<soap:Body" in soap_body:
+        return soap_body.replace("<soap:Body", header + "\n    <soap:Body", 1)
+    elif "<s:Body" in soap_body:
+        return soap_body.replace("<s:Body", header + "\n    <s:Body", 1)
+    return soap_body
+
 SOAP_DEVICE_INFO = (
     '<?xml version="1.0" encoding="utf-8"?>'
-    '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope"'
+    '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:s="http://www.w3.org/2003/05/soap-envelope"'
     ' xmlns:tds="http://www.onvif.org/ver10/device/wsdl">'
     '<soap:Body><tds:GetDeviceInformation /></soap:Body>'
     '</soap:Envelope>'
@@ -106,7 +141,7 @@ SOAP_DEVICE_INFO = (
 
 SOAP_GET_PROFILES = (
     '<?xml version="1.0" encoding="utf-8"?>'
-    '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope"'
+    '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:s="http://www.w3.org/2003/05/soap-envelope"'
     ' xmlns:trt="http://www.onvif.org/ver10/media/wsdl">'
     '<soap:Body><trt:GetProfiles /></soap:Body>'
     '</soap:Envelope>'
@@ -114,7 +149,7 @@ SOAP_GET_PROFILES = (
 
 SOAP_GET_STREAM_URI = (
     '<?xml version="1.0" encoding="utf-8"?>'
-    '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope"'
+    '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:s="http://www.w3.org/2003/05/soap-envelope"'
     ' xmlns:trt="http://www.onvif.org/ver10/media/wsdl"'
     ' xmlns:tt="http://www.onvif.org/ver10/schema">'
     '<soap:Body>'
@@ -131,7 +166,7 @@ SOAP_GET_STREAM_URI = (
 
 SOAP_GET_SNAPSHOT_URI = (
     '<?xml version="1.0" encoding="utf-8"?>'
-    '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope"'
+    '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:s="http://www.w3.org/2003/05/soap-envelope"'
     ' xmlns:trt="http://www.onvif.org/ver10/media/wsdl">'
     '<soap:Body>'
     '<trt:GetSnapshotUri>'
@@ -147,7 +182,7 @@ class ONVIFClient:
 
     def __init__(self, host, port=80, username="admin", password="",
                  auth_mode="standard", algorithm="auto", quote_algo=False,
-                 log_func=None):
+                 use_ws_auth=False, log_func=None):
         self.host = host
         self.port = port
         self.username = username
@@ -155,6 +190,7 @@ class ONVIFClient:
         self.auth_mode = auth_mode
         self.algorithm = algorithm
         self.quote_algo = quote_algo
+        self.use_ws_auth = use_ws_auth
         self.log = log_func or print
         self.url = f"http://{host}:{port}/onvif/device_service"
 
@@ -163,6 +199,10 @@ class ONVIFClient:
         if not HAS_REQUESTS:
             self.log("[ERROR] 'requests' not installed", "error")
             return None
+        
+        if self.use_ws_auth:
+            soap_body = inject_ws_header(soap_body, self.username, self.password)
+            
         hdrs = {"Content-Type": "application/soap+xml; charset=utf-8"}
         auth = HTTPDigestAuth(self.username, self.password)
         try:
@@ -178,6 +218,9 @@ class ONVIFClient:
         if not HAS_REQUESTS:
             self.log("[ERROR] 'requests' not installed", "error")
             return None
+        
+        if self.use_ws_auth:
+            soap_body = inject_ws_header(soap_body, self.username, self.password)
 
         hdrs = {"Content-Type": "application/soap+xml; charset=utf-8"}
         parsed = urlparse(self.url)
@@ -313,7 +356,7 @@ class RTSPClient:
     """Test RTSP/RTSPS Digest auth via socket handshake."""
 
     def __init__(self, url, username="admin", password="",
-                 auth_mode="standard", algorithm="auto", quote_algo=False,
+                 auth_mode="standard", algorithm="auto", quote_algo=False, absolute_uri=True,
                  log_func=None):
         self.url = url
         self.username = username
@@ -321,6 +364,7 @@ class RTSPClient:
         self.auth_mode = auth_mode
         self.algorithm = algorithm
         self.quote_algo = quote_algo
+        self.absolute_uri = absolute_uri
         self.log = log_func or print
 
         parsed = urlparse(url)
@@ -391,14 +435,16 @@ class RTSPClient:
             nc = "00000001"
             cnonce = hashlib.sha256(os.urandom(16)).hexdigest()[:8]
 
+        uri_in_digest = self.url if self.absolute_uri else self.path
+
         _, _, response = compute_digest_response(
             algo_name, self.username, realm, self.password,
-            method, self.url, nonce, qop, nc, cnonce
+            method, uri_in_digest, nonce, qop, nc, cnonce
         )
 
         use_quote = self.quote_algo if self.auth_mode == "custom" else False
         return build_digest_header(
-            self.username, realm, nonce, self.url, algo_name, response,
+            self.username, realm, nonce, uri_in_digest, algo_name, response,
             qop, nc, cnonce, opaque, quote_algo=use_quote
         )
 

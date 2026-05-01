@@ -100,7 +100,9 @@ def build_rtsp_url_with_creds(rtsp_url, username, password) -> str:
 
 
 def launch_stream(rtsp_url, username, password, player="vlc",
-                  player_path=None, log_func=None, disable_hw=False, use_proxy=False) -> Optional[subprocess.Popen]:
+                  player_path=None, log_func=None, disable_hw=False, 
+                  use_proxy=False, quote_algo=False, algorithm="auto", 
+                  absolute_uri=True, tunnel=False) -> Optional[subprocess.Popen]:
     """Launch VLC or ffplay to stream an RTSP/RTSPS URL."""
     log = log_func or print
 
@@ -114,19 +116,17 @@ def launch_stream(rtsp_url, username, password, player="vlc",
     if use_proxy:
         import random
         from urllib.parse import urlparse
-        parsed = urlparse(rtsp_url)
         
-        # Khởi tạo Local Proxy để vượt rào SHA-256 cho VLC
         proxy_port = random.randint(10000, 60000)
         proxy_obj = RTSPProxy(
-            local_port=proxy_port,
-            target_host=parsed.hostname,
-            target_port=parsed.port or 554,
-            target_path=parsed.path,
+            target_url=rtsp_url,
             username=username,
             password=password,
-            quote_algo=True,  # Bắt buộc True cho dòng Tapo C200
-            absolute_uri=True
+            local_port=proxy_port,
+            quote_algo=quote_algo,
+            algorithm=algorithm,
+            absolute_uri=absolute_uri,
+            log_func=log
         )
         proxy_obj.start()
         stream_url = proxy_obj.proxy_url
@@ -138,6 +138,8 @@ def launch_stream(rtsp_url, username, password, player="vlc",
         active_vlc_args = list(VLC_DEFAULT_ARGS)
         if disable_hw:
             active_vlc_args.append('--avcodec-hw=none')
+        if tunnel:
+            active_vlc_args.append('--rtsp-tcp')
 
         cmd = [str(exe)] + active_vlc_args + [
             "--meta-title", "MyoVIF Stream",
@@ -165,19 +167,21 @@ class RTSPProxy:
     """Minimal RTSP proxy to handle custom digest auth for players that can't."""
 
     def __init__(self, target_url, username, password, local_port=8554,
-                 quote_algo=False, algorithm="auto", log_func=None):
+                 quote_algo=False, algorithm="auto", absolute_uri=True, log_func=None):
         self.target_url = target_url
         self.username = username
         self.password = password
         self.local_port = local_port
         self.quote_algo = quote_algo
         self.algorithm = algorithm
+        self.absolute_uri = absolute_uri
         self.log = log_func or print
         self.target_parsed = urlparse(target_url)
         self.target_host = self.target_parsed.hostname
         self.target_port = self.target_parsed.port or 554
         self.running = False
         self.server_sock = None
+        self.proxy_url = f"rtsp://127.0.0.1:{self.local_port}/live"
 
     def start(self):
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -228,13 +232,15 @@ class RTSPProxy:
             nc = "00000001"
             cnonce = "0a4f113b"
 
+        uri_in_digest = url if self.absolute_uri else self.target_parsed.path
+
         _, _, response = compute_digest_response(
             algo_name, self.username, realm, self.password,
-            method, url, nonce, qop, nc, cnonce
+            method, uri_in_digest, nonce, qop, nc, cnonce
         )
 
         return build_digest_header(
-            self.username, realm, nonce, url, algo_name, response,
+            self.username, realm, nonce, uri_in_digest, algo_name, response,
             qop, nc, cnonce, quote_algo=self.quote_algo
         )
 

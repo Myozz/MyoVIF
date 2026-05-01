@@ -23,6 +23,8 @@ class CameraPreset:
     algorithm: str = "auto"          # "auto" | "MD5" | "SHA-256" | "SHA-512-256"
     quote_algo: bool = False
     protocol: str = "rtsp"           # "rtsp" | "rtsps"
+    use_ws_auth: bool = False
+    absolute_uri: bool = True
 
     @property
     def onvif_url(self):
